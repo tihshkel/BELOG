@@ -2,7 +2,7 @@
 
 import type { TimelineEvent } from "@/lib/section-content";
 import { createEmptyEvent } from "@/lib/section-content";
-import { ImageUploadZone } from "../ImageUploadZone";
+import { MediaUploadZone } from "../MediaUploadZone";
 
 interface TimelineEditorProps {
   events: TimelineEvent[];
@@ -96,11 +96,11 @@ export function TimelineEditor({ events, onChange }: TimelineEditorProps) {
                 />
               </div>
 
-              <ImageUploadZone
-                label="Фото (необязательно)"
-                value={event.imageUrl ?? ""}
-                onChange={(url) => update(event.id, { imageUrl: url || undefined })}
-                hint="Небольшой снимок рядом с событием"
+              <MediaUploadZone
+                label="Медиа (необязательно)"
+                value={event.media ?? event.imageUrl ?? ""}
+                onChange={(media) => update(event.id, { media: media.url ? media : undefined })}
+                hint="Фото, видео, аудио или другое — рядом с событием"
               />
             </div>
           </article>

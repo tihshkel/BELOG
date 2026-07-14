@@ -1,12 +1,18 @@
-import { eq, and } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { db, initDatabase } from "./index";
 import { screens, homeContent, sections, appMeta } from "./schema";
 import type { ScreenOrientation, SectionTemplate } from "../types";
+import {
+  LOGO_HISTORY_HTML,
+  LOGO_HISTORY_MEDIA_URL,
+  LOGO_HISTORY_TITLE,
+} from "../home-history-content";
 import {
   GLOBAL_SCREEN_ID,
   serializeContent,
   type SectionContentV2,
 } from "../section-content";
+import { EMPTY_SLOT_TITLE } from "../slot-utils";
 
 const now = () => new Date().toISOString();
 
@@ -21,7 +27,19 @@ function placeholderJson(text: string) {
   });
 }
 
-export const FLAG_ANTHEM_HTML = `<p><strong>Дзяржаўны гімн Рэспублікі Беларусь</strong></p>
+export const FLAG_HTML = `<p><strong>Государственный флаг Республики Беларусь</strong></p>
+<p>Государственный флаг Республики Беларусь — прямоугольное полотнище из двух горизонтально расположенных цветных полос: верхней красного и нижней зелёного цвета, размеры которых 2:1.</p>
+<p>У древка по всей длине красной полосы выложена вертикальная традиционная белорусская народная орнаментальная композиция красного цвета на белом поле, ширина которой составляет 1/9 длины флага.</p>
+<p>Красный цвет символизирует кровь, пролитую защитниками Отечества. Зелёный цвет — весну, возрождение, леса и поля страны. Орнамент — духовное богатство, культурное наследие и единство народа.</p>
+<p>Источник: <a href="https://president.gov.by/ru/gosudarstvo/simvolika/flag" target="_blank" rel="noopener noreferrer">president.gov.by</a></p>`;
+
+export const EMBLEM_HTML = `<p><strong>Государственный герб Республики Беларусь</strong></p>
+<p>Государственный герб Республики Беларусь — символ государственного суверенитета Республики Беларусь.</p>
+<p>Герб представляет собой изображение, заключённое в контур зелёного цвета в форме круга, в центре которого на фоне неба и восходящего золотистого солнца расположена очертанная золотистым контуром географическая карта Республики Беларусь. Над картой — пятиконечная красная звезда.</p>
+<p>В верхней части круга — надпись «Рэспубліка Беларусь». В нижней части — венок из колосьев, переплетённых лентами цветов государственного флага — красного и зелёного, с наложенным в центре венка на ленты государственного флага — красной звезды.</p>
+<p>Источник: <a href="https://president.gov.by/ru/gosudarstvo/simvolika/gerb" target="_blank" rel="noopener noreferrer">president.gov.by</a></p>`;
+
+export const ANTHEM_HTML = `<p><strong>Дзяржаўны гімн Рэспублікі Беларусь</strong></p>
 <p>Мы, беларусы – мірныя людзі,<br/>
 Сэрцам адданыя роднай зямлі,<br/>
 Шчыра сябруем, сілы гартуем<br/>
@@ -45,7 +63,11 @@ export const FLAG_ANTHEM_HTML = `<p><strong>Дзяржаўны гімн Рэсп
 <p>Слаўся, зямлі нашай светлае імя,<br/>
 Слаўся, народаў братэрскі саюз!<br/>
 Наша любімая маці-Радзіма,<br/>
-Вечна жыві і квітней, Беларусь!</p>`;
+Вечна жыві і квітней, Беларусь!</p>
+<p>Источник: <a href="https://president.gov.by/ru/gosudarstvo/simvolika/gimn" target="_blank" rel="noopener noreferrer">president.gov.by</a></p>`;
+
+/** @deprecated Use ANTHEM_HTML */
+export const FLAG_ANTHEM_HTML = ANTHEM_HTML;
 
 function flagAnthemJson() {
   return JSON.stringify({
@@ -118,27 +140,25 @@ const homeDefaults = [
     hotspotType: "flag" as const,
     title: "Государственный флаг Республики Беларусь",
     mediaUrl: "/assets/flag-rb.png",
-    html: FLAG_ANTHEM_HTML,
+    html: FLAG_HTML,
   },
   {
     hotspotType: "emblem" as const,
-    title: "Законы и указы",
+    title: "Государственный герб Республики Беларусь",
     mediaUrl: "/assets/emblem-rb.png",
-    html: `<p><strong>Нормативные акты, касающиеся Белорусского общества глухих</strong></p>
-<ul>
-<li>Закон Республики Беларусь «О социальной защите инвалидов в Республике Беларусь»</li>
-<li>Указ Президента Республики Беларусь о мерах по поддержке общественных объединений инвалидов</li>
-<li>Положение о Белорусском республиканском обществе глухих</li>
-</ul>
-<p>Контент этого раздела может быть отредактирован в админ-панели.</p>`,
+    html: EMBLEM_HTML,
+  },
+  {
+    hotspotType: "anthem" as const,
+    title: "Государственный гимн Республики Беларусь",
+    mediaUrl: "/assets/anthem-rb.jpg",
+    html: ANTHEM_HTML,
   },
   {
     hotspotType: "logo" as const,
-    title: "История музея",
-    mediaUrl: "/assets/logo-belog.png",
-    html: `<p><strong>Белорусское общество глухих</strong></p>
-<p>Белорусское общество глухих — общественная организация, объединяющая глухих и слабослышащих граждан Республики Беларусь. Музей сохраняет историю развития общества, его культурных и спортивных достижений.</p>
-<p>Контент этого раздела может быть отредактирован в админ-панели.</p>`,
+    title: LOGO_HISTORY_TITLE,
+    mediaUrl: LOGO_HISTORY_MEDIA_URL,
+    html: LOGO_HISTORY_HTML,
   },
 ];
 
@@ -229,7 +249,7 @@ function seedScreen(screenId: ScreenOrientation, screenName: string) {
           hotspotType: item.hotspotType,
           title: item.title,
           contentJson:
-            item.hotspotType === "flag" ? flagAnthemJson() : placeholderJson(item.title),
+            item.hotspotType === "anthem" ? flagAnthemJson() : placeholderJson(item.title),
           contentHtml: item.html,
           mediaUrl: item.mediaUrl,
           updatedAt: now(),
@@ -422,41 +442,354 @@ function applySectionsV2Patch() {
   }
 }
 
+function buildDemoSlots(): {
+  title: string;
+  coverUrl: string | null;
+  templateType: SectionTemplate;
+  content: SectionContentV2;
+  isPublished: boolean;
+}[] {
+  return [
+    {
+      title: "История Белорусского общества глухих",
+      coverUrl: "/assets/sections/history.jpg",
+      templateType: "timeline",
+      isPublished: true,
+      content: {
+        version: 2,
+        events: [
+          {
+            id: crypto.randomUUID(),
+            year: "1930",
+            title: "Основание общества",
+            text: "Белорусское общество глухих — одна из старейших общественных организаций страны.",
+            imageUrl: "/assets/sections/history.jpg",
+          },
+          {
+            id: crypto.randomUUID(),
+            year: "1990",
+            title: "Новый этап развития",
+            text: "Общество объединяет людей с нарушением слуха, защищает их права и развивает культуру глухих.",
+          },
+          {
+            id: crypto.randomUUID(),
+            year: "2020",
+            title: "Музей БелОГ",
+            text: "Музей сохраняет память о людях, событиях и достижениях, которые сформировали современное сообщество.",
+          },
+        ],
+      },
+    },
+    {
+      title: "Достижения и награды",
+      coverUrl: "/assets/sections/awards.jpg",
+      templateType: "highlights",
+      isPublished: true,
+      content: {
+        version: 2,
+        highlights: [
+          {
+            id: crypto.randomUUID(),
+            imageUrl: "/assets/sections/awards.jpg",
+            title: "Признание заслуг",
+            text: "Члены общества неоднократно отмечались государственными наградами за вклад в развитие инклюзивного общества.",
+          },
+          {
+            id: crypto.randomUUID(),
+            imageUrl: "/assets/sections/sports.jpg",
+            title: "Спортивные победы",
+            text: "Спортсмены БелОГ представляют Беларусь на международных соревнованиях и Дефлимпийских играх.",
+          },
+        ],
+      },
+    },
+    {
+      title: "Фотогалерея",
+      coverUrl: "/assets/sections/gallery.jpg",
+      templateType: "gallery",
+      isPublished: true,
+      content: {
+        version: 2,
+        gallery: [
+          { id: crypto.randomUUID(), url: "/assets/sections/gallery.jpg", caption: "Мероприятия общества", size: "full" },
+          { id: crypto.randomUUID(), url: "/assets/sections/history.jpg", caption: "История организации", size: "medium" },
+          { id: crypto.randomUUID(), url: "/assets/sections/sports.jpg", caption: "Спортивные соревнования", size: "medium" },
+          { id: crypto.randomUUID(), url: "/assets/sections/deaflympics.jpg", caption: "Дефлимпийские игры", size: "large" },
+        ],
+      },
+    },
+    {
+      title: "Международное сотрудничество",
+      coverUrl: "/assets/sections/international.jpg",
+      templateType: "article",
+      isPublished: true,
+      content: {
+        version: 2,
+        heroImage: "/assets/sections/international.jpg",
+        heroSize: "large",
+        intro: "Беларусь активно участвует в международном движении глухих.",
+        body: "Регулярные визиты, обмен делегациями и совместные культурные программы укрепляют связи с партнёрами из разных стран.",
+      },
+    },
+    {
+      title: "Дефлимпийское движение",
+      coverUrl: "/assets/sections/deaflympics.jpg",
+      templateType: "photo_story",
+      isPublished: true,
+      content: {
+        version: 2,
+        stories: [
+          {
+            id: crypto.randomUUID(),
+            imageUrl: "/assets/sections/deaflympics.jpg",
+            imageSize: "full",
+            title: "Дефлимпийские игры",
+            text: "Крупнейшее спортивное событие для глухих спортсменов. Белорусские атлеты регулярно завоёвывают медали.",
+          },
+        ],
+      },
+    },
+    {
+      title: "Спорт глухих Беларуси",
+      coverUrl: "/assets/sections/sports.jpg",
+      templateType: "photo_story",
+      isPublished: true,
+      content: {
+        version: 2,
+        stories: [
+          {
+            id: crypto.randomUUID(),
+            imageUrl: "/assets/sections/sports.jpg",
+            imageSize: "full",
+            title: "Команда чемпионов",
+            text: "Волейбол, лёгкая атлетика, плавание — глухие спортсмены Беларуси добиваются высоких результатов.",
+          },
+          {
+            id: crypto.randomUUID(),
+            imageUrl: "/assets/sections/deaflympics.jpg",
+            imageSize: "medium",
+            title: "Путь к победе",
+            text: "Тренировки, соревнования и поддержка общества помогают атлетам достигать целей.",
+          },
+        ],
+      },
+    },
+    ...Array.from({ length: 4 }, () => ({
+      title: EMPTY_SLOT_TITLE,
+      coverUrl: null,
+      templateType: "article" as SectionTemplate,
+      isPublished: false,
+      content: { version: 2 as const, intro: "", body: "" },
+    })),
+  ];
+}
+
+function applySectionsV3Patch() {
+  const SECTIONS_V3_VERSION = "3";
+
+  const metaRows = db
+    .select()
+    .from(appMeta)
+    .where(eq(appMeta.key, "sections_v3_version"))
+    .all();
+  const currentVersion = metaRows[0]?.value;
+
+  const globalScreen = db.select().from(screens).where(eq(screens.id, GLOBAL_SCREEN_ID)).all();
+  if (globalScreen.length === 0) {
+    db.insert(screens).values({ id: GLOBAL_SCREEN_ID, name: "Общие разделы" }).run();
+  }
+
+  const existing = db
+    .select()
+    .from(sections)
+    .where(eq(sections.screenId, GLOBAL_SCREEN_ID))
+    .orderBy(asc(sections.slotIndex))
+    .all();
+
+  if (currentVersion === SECTIONS_V3_VERSION && existing.length === 10) {
+    return;
+  }
+
+  if (currentVersion === SECTIONS_V3_VERSION && existing.length < 10) {
+    ensureTenSlots(existing);
+    return;
+  }
+
+  db.delete(sections).where(eq(sections.screenId, GLOBAL_SCREEN_ID)).run();
+
+  const demoSlots = buildDemoSlots();
+  demoSlots.forEach((slot, slotIndex) => {
+    db.insert(sections)
+      .values({
+        id: crypto.randomUUID(),
+        screenId: GLOBAL_SCREEN_ID,
+        title: slot.title,
+        coverUrl: slot.coverUrl,
+        templateType: slot.templateType,
+        contentJson: serializeContent(slot.content),
+        contentHtml: null,
+        slotIndex,
+        sortOrder: slotIndex,
+        isPublished: slot.isPublished,
+        createdAt: now(),
+        updatedAt: now(),
+      })
+      .run();
+  });
+
+  if (metaRows.length === 0) {
+    db.insert(appMeta)
+      .values({ key: "sections_v3_version", value: SECTIONS_V3_VERSION })
+      .run();
+  } else {
+    db.update(appMeta)
+      .set({ value: SECTIONS_V3_VERSION })
+      .where(eq(appMeta.key, "sections_v3_version"))
+      .run();
+  }
+}
+
+function ensureTenSlots(existing: (typeof sections.$inferSelect)[]) {
+  const occupied = new Set(existing.map((s) => s.slotIndex ?? s.sortOrder));
+  for (let slotIndex = 0; slotIndex < 10; slotIndex++) {
+    if (occupied.has(slotIndex)) continue;
+    db.insert(sections)
+      .values({
+        id: crypto.randomUUID(),
+        screenId: GLOBAL_SCREEN_ID,
+        title: EMPTY_SLOT_TITLE,
+        coverUrl: null,
+        templateType: "article",
+        contentJson: serializeContent({ version: 2, intro: "", body: "" }),
+        contentHtml: null,
+        slotIndex,
+        sortOrder: slotIndex,
+        isPublished: false,
+        createdAt: now(),
+        updatedAt: now(),
+      })
+      .run();
+  }
+}
+
 function applySectionsDemoPatch() {
   /* replaced by applySectionsV2Patch */
 }
 
 function applyContentPatches() {
-  const FLAG_ANTHEM_VERSION = "2";
+  applySymbolsContentPatch();
+  applyLogoHistoryPatch();
+}
+
+function applyLogoHistoryPatch() {
+  const LOGO_HISTORY_VERSION = "1";
 
   const metaRows = db
     .select()
     .from(appMeta)
-    .where(eq(appMeta.key, "flag_anthem_version"))
+    .where(eq(appMeta.key, "logo_history_version"))
     .all();
   const currentVersion = metaRows[0]?.value;
 
-  if (currentVersion === FLAG_ANTHEM_VERSION) return;
+  if (currentVersion === LOGO_HISTORY_VERSION) return;
 
   for (const screenId of ["horizontal", "vertical"] as const) {
-    db.update(homeContent)
-      .set({
-        contentHtml: FLAG_ANTHEM_HTML,
-        contentJson: flagAnthemJson(),
-        updatedAt: now(),
-      })
-      .where(and(eq(homeContent.screenId, screenId), eq(homeContent.hotspotType, "flag")))
-      .run();
+    const existing = db
+      .select()
+      .from(homeContent)
+      .where(eq(homeContent.screenId, screenId))
+      .all()
+      .find((r) => r.hotspotType === "logo");
+
+    if (existing) {
+      db.update(homeContent)
+        .set({
+          title: LOGO_HISTORY_TITLE,
+          contentHtml: LOGO_HISTORY_HTML,
+          contentJson: placeholderJson(LOGO_HISTORY_TITLE),
+          mediaUrl: LOGO_HISTORY_MEDIA_URL,
+          updatedAt: now(),
+        })
+        .where(eq(homeContent.id, existing.id))
+        .run();
+    }
   }
 
   if (metaRows.length === 0) {
     db.insert(appMeta)
-      .values({ key: "flag_anthem_version", value: FLAG_ANTHEM_VERSION })
+      .values({ key: "logo_history_version", value: LOGO_HISTORY_VERSION })
       .run();
   } else {
     db.update(appMeta)
-      .set({ value: FLAG_ANTHEM_VERSION })
-      .where(eq(appMeta.key, "flag_anthem_version"))
+      .set({ value: LOGO_HISTORY_VERSION })
+      .where(eq(appMeta.key, "logo_history_version"))
+      .run();
+  }
+}
+
+function applySymbolsContentPatch() {
+  const SYMBOLS_CONTENT_VERSION = "4";
+
+  const metaRows = db
+    .select()
+    .from(appMeta)
+    .where(eq(appMeta.key, "symbols_content_version"))
+    .all();
+  const currentVersion = metaRows[0]?.value;
+
+  if (currentVersion === SYMBOLS_CONTENT_VERSION) return;
+
+  const symbolUpdates: { type: string; title: string; html: string; mediaUrl: string | null }[] = [
+    { type: "flag", title: "Государственный флаг Республики Беларусь", html: FLAG_HTML, mediaUrl: "/assets/flag-rb.png" },
+    { type: "emblem", title: "Государственный герб Республики Беларусь", html: EMBLEM_HTML, mediaUrl: "/assets/emblem-rb.png" },
+    { type: "anthem", title: "Государственный гимн Республики Беларусь", html: ANTHEM_HTML, mediaUrl: "/assets/anthem-rb.jpg" },
+  ];
+
+  for (const screenId of ["horizontal", "vertical"] as const) {
+    for (const update of symbolUpdates) {
+      const existing = db
+        .select()
+        .from(homeContent)
+        .where(eq(homeContent.screenId, screenId))
+        .all()
+        .find((r) => r.hotspotType === update.type);
+
+      if (existing) {
+        db.update(homeContent)
+          .set({
+            title: update.title,
+            contentHtml: update.html,
+            contentJson: update.type === "anthem" ? flagAnthemJson() : placeholderJson(update.title),
+            mediaUrl: update.mediaUrl,
+            updatedAt: now(),
+          })
+          .where(eq(homeContent.id, existing.id))
+          .run();
+      } else {
+        db.insert(homeContent)
+          .values({
+            id: crypto.randomUUID(),
+            screenId,
+            hotspotType: update.type,
+            title: update.title,
+            contentJson: update.type === "anthem" ? flagAnthemJson() : placeholderJson(update.title),
+            contentHtml: update.html,
+            mediaUrl: update.mediaUrl,
+            updatedAt: now(),
+          })
+          .run();
+      }
+    }
+  }
+
+  if (metaRows.length === 0) {
+    db.insert(appMeta)
+      .values({ key: "symbols_content_version", value: SYMBOLS_CONTENT_VERSION })
+      .run();
+  } else {
+    db.update(appMeta)
+      .set({ value: SYMBOLS_CONTENT_VERSION })
+      .where(eq(appMeta.key, "symbols_content_version"))
       .run();
   }
 }
@@ -467,4 +800,5 @@ export function seedDatabase() {
   seedScreen("vertical", "Вертикальный экран");
   applyContentPatches();
   applySectionsV2Patch();
+  applySectionsV3Patch();
 }

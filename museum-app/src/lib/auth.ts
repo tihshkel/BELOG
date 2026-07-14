@@ -50,7 +50,9 @@ export async function isAuthenticated() {
 export function verifyCredentials(login: string, password: string) {
   const adminLogin = process.env.ADMIN_LOGIN ?? "belog_admin";
   const adminPassword = process.env.ADMIN_PASSWORD ?? "MuzeiBelOG2026";
-  return login === adminLogin && password === adminPassword;
+  const normalizedLogin = login.trim();
+  const normalizedPassword = password.trim();
+  return normalizedLogin === adminLogin && normalizedPassword === adminPassword;
 }
 
 export { COOKIE_NAME };

@@ -1,23 +1,44 @@
 "use client";
 
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import type { HomeContent, ScreenOrientation } from "@/lib/types";
+import type { HomeContent, ScreenOrientation, StateSymbolType } from "@/lib/types";
+import { parseStoredMediaValue } from "@/lib/media";
 import { getDisplayBgSrc } from "@/lib/screen-specs";
 import { HotspotSymbol } from "./HotspotSymbol";
+import { MediaTile } from "./media/MediaTile";
+import { MediaPreviewOverlay } from "./media/MediaPreviewOverlay";
+
+const STATE_SYMBOL_TYPES: StateSymbolType[] = ["flag", "emblem", "anthem"];
+
+function isStateSymbol(hotspotType: string): boolean {
+  return STATE_SYMBOL_TYPES.includes(hotspotType as StateSymbolType);
+}
 
 interface HotspotOverlayProps {
   orientation: ScreenOrientation;
   content: HomeContent | null;
   onClose: () => void;
+  simple?: boolean;
 }
 
-export function HotspotOverlay({ orientation, content, onClose }: HotspotOverlayProps) {
+export function HotspotOverlay({
+  orientation,
+  content,
+  onClose,
+  simple: simpleProp,
+}: HotspotOverlayProps) {
+  const [audioPreview, setAudioPreview] = useState(false);
+
   if (!content) return null;
 
+  const simple = simpleProp ?? isStateSymbol(content.hotspotType);
   const isHorizontal = orientation === "horizontal";
   const displayBg = getDisplayBgSrc(orientation);
-  const hasMedia = Boolean(content.mediaUrl);
+  const media = parseStoredMediaValue(content.mediaUrl);
+  const hasMedia = Boolean(media?.url);
+  const isAudio = media?.kind === "audio";
   const layoutClass = [
     "content-layout",
     isHorizontal ? "content-layout--horizontal" : "content-layout--vertical",
@@ -26,6 +47,8 @@ export function HotspotOverlay({ orientation, content, onClose }: HotspotOverlay
     .filter(Boolean)
     .join(" ");
 
+  const fadeTransition = { duration: 0.2, ease: "easeOut" as const };
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -33,24 +56,19 @@ export function HotspotOverlay({ orientation, content, onClose }: HotspotOverlay
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.22 }}
-        className="content-overlay"
+        transition={fadeTransition}
+        className={`content-overlay${simple ? " content-overlay--simple" : ""}`}
         onClick={onClose}
       >
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 16 }}
-          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, ...(simple ? {} : { y: 20 }) }}
+          animate={{ opacity: 1, ...(simple ? {} : { y: 0 }) }}
+          exit={{ opacity: 0, ...(simple ? {} : { y: 16 }) }}
+          transition={simple ? fadeTransition : { duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
           className="content-panel"
           onClick={(e) => e.stopPropagation()}
         >
-          <motion.header
-            className="content-header"
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05, duration: 0.35 }}
-          >
+          <header className="content-header">
             <h2 className="content-header__title">{content.title}</h2>
             <button
               type="button"
@@ -60,18 +78,13 @@ export function HotspotOverlay({ orientation, content, onClose }: HotspotOverlay
             >
               Закрыть
             </button>
-          </motion.header>
+          </header>
 
           <div className="content-body">
             <div className={layoutClass}>
-              {hasMedia && (
+              {hasMedia && media ? (
                 <aside className="content-visual">
-                  <motion.div
-                    className="content-visual__bg-wrap"
-                    initial={{ opacity: 0, scale: 1.05 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                  >
+                  <div className="content-visual__bg-wrap">
                     <Image
                       src={displayBg}
                       alt=""
@@ -79,39 +92,49 @@ export function HotspotOverlay({ orientation, content, onClose }: HotspotOverlay
                       sizes={isHorizontal ? "40vw" : "100vw"}
                       className="content-visual__bg"
                     />
-                  </motion.div>
+                  </div>
                   <div className="content-visual__inner">
-                    <HotspotSymbol type={content.hotspotType} src={content.mediaUrl!} />
+                    {isAudio ? (
+                      <MediaTile
+                        media={media}
+                        title={content.title ?? undefined}
+                        className="content-visual__audio-tile"
+                        onClick={() => setAudioPreview(true)}
+                        asButton
+                      />
+                    ) : (
+                      <HotspotSymbol
+                        type={content.hotspotType}
+                        src={media.url}
+                        simple={simple}
+                      />
+                    )}
                   </div>
                 </aside>
-              )}
+              ) : null}
 
               {content.contentHtml && (
-                <motion.section
-                  className="content-reader"
-                  initial={{ opacity: 0, x: 28 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{
-                    delay: hasMedia ? 0.35 : 0.15,
-                    duration: 0.45,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                >
+                <section className="content-reader">
                   <div className="content-reader__scroll">
-                    <motion.div
+                    <div
                       className="content-reader__inner prose-museum prose-museum--overlay"
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: hasMedia ? 0.45 : 0.25, duration: 0.4 }}
                       dangerouslySetInnerHTML={{ __html: content.contentHtml }}
                     />
                   </div>
-                </motion.section>
+                </section>
               )}
             </div>
           </div>
         </motion.div>
       </motion.div>
+
+      {audioPreview && media ? (
+        <MediaPreviewOverlay
+          items={[{ media, title: content.title ?? undefined }]}
+          index={0}
+          onClose={() => setAudioPreview(false)}
+        />
+      ) : null}
     </AnimatePresence>
   );
 }

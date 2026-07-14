@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function LegacySectionsPage() {
-  redirect("/admin/sections");
+export default function LegacyOrientationSectionsPage() {
+  redirect("/admin/site");
 }

@@ -28,6 +28,7 @@ export const sections = sqliteTable("sections", {
   templateType: text("template_type").notNull().default("article"),
   contentJson: text("content_json"),
   contentHtml: text("content_html"),
+  slotIndex: integer("slot_index").notNull().default(0),
   sortOrder: integer("sort_order").notNull().default(0),
   isPublished: integer("is_published", { mode: "boolean" }).notNull().default(false),
   createdAt: text("created_at").notNull(),

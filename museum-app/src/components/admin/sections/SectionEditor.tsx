@@ -11,7 +11,7 @@ import {
   type SectionContentV2,
 } from "@/lib/section-content";
 import { useAdminToast } from "../AdminToast";
-import { ImageUploadZone } from "../ImageUploadZone";
+import { ImageUploadZone } from "../MediaUploadZone";
 import { ArticleEditor } from "./ArticleEditor";
 import { GalleryEditor } from "./GalleryEditor";
 import { PhotoStoryEditor } from "./PhotoStoryEditor";

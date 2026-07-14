@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import type { ScreenOrientation, Section } from "@/lib/types";
+import { mediaRefFromUrl } from "@/lib/media";
 import { imageSizeClass, parseContent } from "@/lib/section-content";
 import { SectionHeader } from "./SectionHeader";
-import { PhotoLightbox } from "./PhotoLightbox";
+import { MediaTile } from "../media/MediaTile";
+import { MediaPreviewOverlay } from "../media/MediaPreviewOverlay";
 
 interface SectionGalleryLayoutProps {
   section: Section;
@@ -17,7 +18,7 @@ export function SectionGalleryLayout({ section, orientation }: SectionGalleryLay
   const isHorizontal = orientation === "horizontal";
   const content = parseContent(section.contentJson, section.contentHtml, "gallery");
   const items = content.gallery ?? [];
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-transparent">
@@ -31,34 +32,26 @@ export function SectionGalleryLayout({ section, orientation }: SectionGalleryLay
           className={`gallery-grid ${isHorizontal ? "gallery-grid--horizontal" : "gallery-grid--vertical"}`}
         >
           {items.map((item, index) => (
-            <button
+            <MediaTile
               key={item.id}
-              type="button"
+              media={item.media ?? mediaRefFromUrl("")}
+              caption={item.caption}
               className={`gallery-item ${imageSizeClass(item.size, "gallery-item")}`}
-              onClick={() => setLightboxIndex(index)}
-              aria-label={item.caption || `Фото ${index + 1}`}
-            >
-              <div className={`gallery-item__image ${imageSizeClass(item.size, "gallery-item__image")}`}>
-                <Image
-                  src={item.url}
-                  alt={item.caption}
-                  fill
-                  sizes={isHorizontal ? "33vw" : "100vw"}
-                  className="gallery-item__photo"
-                />
-              </div>
-              {item.caption ? <p className="gallery-item__caption">{item.caption}</p> : null}
-            </button>
+              imageClassName={`gallery-item__image ${imageSizeClass(item.size, "gallery-item__image")}`}
+              sizes={isHorizontal ? "33vw" : "100vw"}
+              onClick={() => setPreviewIndex(index)}
+              asButton
+            />
           ))}
         </motion.div>
       </div>
 
-      {lightboxIndex !== null ? (
-        <PhotoLightbox
-          images={items.map((i) => ({ url: i.url, caption: i.caption }))}
-          index={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onChange={setLightboxIndex}
+      {previewIndex !== null && items[previewIndex]?.media?.url ? (
+        <MediaPreviewOverlay
+          items={items.map((item) => ({ media: item.media ?? mediaRefFromUrl(""), caption: item.caption }))}
+          index={previewIndex}
+          onClose={() => setPreviewIndex(null)}
+          onChange={setPreviewIndex}
         />
       ) : null}
     </div>

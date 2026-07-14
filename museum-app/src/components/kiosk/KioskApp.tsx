@@ -2,12 +2,17 @@
 
 import { motion } from "framer-motion";
 import { useMemo, useState, useCallback } from "react";
+import { MAX_SECTIONS } from "@/lib/constants";
 import type { ScreenOrientation } from "@/lib/types";
 import { useKioskData } from "@/hooks/useKioskData";
 import { BookNavigator } from "@/components/kiosk/BookNavigator";
 import { HomePage } from "@/components/kiosk/HomePage";
+import { StateSymbolsPage } from "@/components/kiosk/StateSymbolsPage";
 import { SectionsGrid } from "@/components/kiosk/SectionsGrid";
 import { SectionPage } from "@/components/kiosk/SectionPage";
+
+const SECTIONS_PAGE_INDEX = 2;
+const SECTION_DETAIL_OFFSET = 3;
 
 interface KioskAppProps {
   orientation: ScreenOrientation;
@@ -18,14 +23,28 @@ export function KioskApp({ orientation }: KioskAppProps) {
   const [currentPage, setCurrentPage] = useState(0);
 
   const handleSectionSelect = useCallback((index: number) => {
-    setCurrentPage(2 + index);
+    setCurrentPage(SECTION_DETAIL_OFFSET + index);
+  }, []);
+
+  const handleOpenStateSymbols = useCallback(() => {
+    setCurrentPage(1);
   }, []);
 
   const pages = useMemo(() => {
     if (!data) return [];
 
     const pageList = [
-      <HomePage key="home" orientation={orientation} homeContent={data.homeContent} />,
+      <HomePage
+        key="home"
+        orientation={orientation}
+        homeContent={data.homeContent}
+        onOpenStateSymbols={handleOpenStateSymbols}
+      />,
+      <StateSymbolsPage
+        key="symbols"
+        orientation={orientation}
+        homeContent={data.homeContent}
+      />,
       <SectionsGrid
         key="grid"
         orientation={orientation}
@@ -34,18 +53,23 @@ export function KioskApp({ orientation }: KioskAppProps) {
       />,
     ];
 
-    data.sections.forEach((section, index) => {
-      pageList.push(
-        <SectionPage
-          key={section.id}
-          section={section}
-          orientation={orientation}
-        />
-      );
-    });
+    for (let slotIndex = 0; slotIndex < MAX_SECTIONS; slotIndex++) {
+      const section = data.sections.find((item) => item.slotIndex === slotIndex);
+      if (section) {
+        pageList.push(
+          <SectionPage
+            key={section.id}
+            section={section}
+            orientation={orientation}
+          />
+        );
+      } else {
+        pageList.push(<div key={`section-slot-${slotIndex}`} className="h-full w-full" aria-hidden />);
+      }
+    }
 
     return pageList;
-  }, [data, orientation, handleSectionSelect]);
+  }, [data, orientation, handleSectionSelect, handleOpenStateSymbols]);
 
   if (loading) {
     return (
@@ -82,6 +106,8 @@ export function KioskApp({ orientation }: KioskAppProps) {
       currentPage={currentPage}
       onPageChange={setCurrentPage}
       showNextOnFirst
+      sectionsPageIndex={SECTIONS_PAGE_INDEX}
+      symbolsPageIndex={1}
     />
   );
 }

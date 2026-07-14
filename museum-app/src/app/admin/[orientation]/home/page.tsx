@@ -1,26 +1,13 @@
-import { AdminLayout } from "@/components/admin/AdminLayout";
-import { HomeEditor } from "@/components/admin/HomeEditor";
-import { ensureDb } from "@/lib/db/ensure";
-import { getHomeContent } from "@/lib/db/queries";
-import type { ScreenOrientation } from "@/lib/types";
+import { redirect } from "next/navigation";
 
-export default async function AdminHomePage({
-  params,
-}: {
+interface LegacyHomePageProps {
   params: Promise<{ orientation: string }>;
-}) {
+}
+
+export default async function LegacyHomePage({ params }: LegacyHomePageProps) {
   const { orientation } = await params;
-
-  if (orientation !== "horizontal" && orientation !== "vertical") {
-    return <div>Неверный экран</div>;
+  if (orientation === "vertical") {
+    redirect("/admin/site?orientation=vertical");
   }
-
-  ensureDb();
-  const data = getHomeContent(orientation as ScreenOrientation);
-
-  return (
-    <AdminLayout orientation={orientation as ScreenOrientation}>
-      <HomeEditor orientation={orientation as ScreenOrientation} initialData={data} />
-    </AdminLayout>
-  );
+  redirect("/admin/site");
 }

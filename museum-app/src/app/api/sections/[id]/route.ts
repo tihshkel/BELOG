@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { COOKIE_NAME, verifySession } from "@/lib/auth";
 import { ensureDb } from "@/lib/db/ensure";
+import { getSectionById } from "@/lib/db/queries";
+import { normalizeTemplateType } from "@/lib/section-content";
+import { createSlideContent, serializeSlideContent } from "@/lib/slide-content";
+import { EMPTY_SLOT_TITLE } from "@/lib/slot-utils";
 
 async function requireAuth() {
   const cookieStore = await cookies();
@@ -25,13 +29,14 @@ export async function PUT(
   const { sections } = await import("@/lib/db/schema");
   const { eq } = await import("drizzle-orm");
 
+  const templateType = normalizeTemplateType(body.templateType ?? "article");
   const now = new Date().toISOString();
 
   db.update(sections)
     .set({
       title: body.title,
       coverUrl: body.coverUrl ?? null,
-      templateType: body.templateType ?? "article",
+      templateType,
       contentJson: body.contentJson ?? null,
       contentHtml: body.contentHtml ?? null,
       isPublished: body.isPublished ?? false,
@@ -54,11 +59,29 @@ export async function DELETE(
   const { id } = await params;
 
   ensureDb();
+  const section = getSectionById(id);
+  if (!section) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const { db } = await import("@/lib/db");
   const { sections } = await import("@/lib/db/schema");
   const { eq } = await import("drizzle-orm");
 
-  db.delete(sections).where(eq(sections.id, id)).run();
+  const now = new Date().toISOString();
+
+  db.update(sections)
+    .set({
+      title: EMPTY_SLOT_TITLE,
+      coverUrl: null,
+      templateType: "article",
+      contentJson: serializeSlideContent(createSlideContent("article")),
+      contentHtml: null,
+      isPublished: false,
+      updatedAt: now,
+    })
+    .where(eq(sections.id, id))
+    .run();
 
   return NextResponse.json({ success: true });
 }

@@ -1,6 +1,12 @@
 export type ScreenOrientation = "horizontal" | "vertical";
-export type HotspotType = "flag" | "emblem" | "logo";
-export type SectionTemplate = "article" | "photo_story" | "gallery" | "timeline";
+export type HotspotType = "flag" | "emblem" | "logo" | "anthem";
+export type StateSymbolType = "flag" | "emblem" | "anthem";
+export type SectionTemplate =
+  | "article"
+  | "photo_story"
+  | "gallery"
+  | "timeline"
+  | "highlights";
 
 export interface Screen {
   id: ScreenOrientation;
@@ -25,6 +31,7 @@ export interface Section {
   templateType: SectionTemplate;
   contentJson: string | null;
   contentHtml: string | null;
+  slotIndex: number;
   sortOrder: number;
   isPublished: boolean;
   createdAt: string;

@@ -11,6 +11,7 @@ interface BookNavigatorProps {
   showNextOnFirst?: boolean;
   homePageIndex?: number;
   sectionsPageIndex?: number;
+  symbolsPageIndex?: number;
 }
 
 export function BookNavigator({
@@ -19,7 +20,8 @@ export function BookNavigator({
   onPageChange,
   showNextOnFirst = true,
   homePageIndex = 0,
-  sectionsPageIndex = 1,
+  sectionsPageIndex = 2,
+  symbolsPageIndex = 1,
 }: BookNavigatorProps) {
   const [internalPage, setInternalPage] = useState(0);
   const currentPage = controlledPage ?? internalPage;
@@ -44,18 +46,26 @@ export function BookNavigator({
   );
 
   const goForward = useCallback(() => {
+    if (currentPage === homePageIndex) {
+      setPage(sectionsPageIndex, 1);
+      return;
+    }
     if (currentPage < pages.length - 1) setPage(currentPage + 1, 1);
-  }, [currentPage, pages.length, setPage]);
+  }, [currentPage, homePageIndex, pages.length, sectionsPageIndex, setPage]);
 
   const goBackward = useCallback(() => {
     if (currentPage > sectionsPageIndex) {
       setPage(sectionsPageIndex, -1);
       return;
     }
+    if (currentPage === symbolsPageIndex) {
+      setPage(homePageIndex, -1);
+      return;
+    }
     if (currentPage > homePageIndex) {
       setPage(homePageIndex, -1);
     }
-  }, [currentPage, homePageIndex, sectionsPageIndex, setPage]);
+  }, [currentPage, homePageIndex, sectionsPageIndex, symbolsPageIndex, setPage]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
@@ -74,10 +84,12 @@ export function BookNavigator({
   };
 
   const isHomePage = currentPage === homePageIndex;
+  const isSymbolsPage = currentPage === symbolsPageIndex;
   const isSectionsPage = currentPage === sectionsPageIndex;
   const isSectionDetailPage = currentPage > sectionsPageIndex;
   const isLastPage = currentPage === pages.length - 1;
-  const showForward = !isLastPage && (showNextOnFirst || !isHomePage) && !isSectionsPage;
+  const showForward =
+    !isLastPage && (showNextOnFirst || !isHomePage) && !isSectionsPage && !isSymbolsPage;
 
   return (
     <div
@@ -93,9 +105,23 @@ export function BookNavigator({
 
       <div
         className={`nav-dock absolute bottom-[clamp(12px,3cqh,24px)] left-1/2 z-30 flex -translate-x-1/2 items-center gap-[clamp(8px,2cqw,14px)] ${
-          isHomePage || isSectionsPage ? "nav-dock--home" : ""
+          isHomePage || isSectionsPage || isSymbolsPage ? "nav-dock--home" : ""
         }`}
       >
+        {isSymbolsPage ? (
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setPage(homePageIndex, -1)}
+            className="nav-btn nav-btn--wide"
+            aria-label="На главную"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="shrink-0" style={{ width: "clamp(16px,3.5cqw,20px)", height: "clamp(16px,3.5cqw,20px)" }}>
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            <span>На главную</span>
+          </motion.button>
+        ) : null}
+
         {isSectionsPage ? (
           <motion.button
             whileTap={{ scale: 0.92 }}

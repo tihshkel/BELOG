@@ -35,7 +35,10 @@ export function SectionList({ sections, onMove, onDelete }: SectionListProps) {
             )}
 
             <div className="admin-section-row__info">
-              <h3 className="admin-section-row__title">{section.title}</h3>
+              <h3 className="admin-section-row__title">
+                <span className="admin-section-row__slot">{String(index + 1).padStart(2, "0")}</span>
+                {section.title}
+              </h3>
               <p className="admin-section-row__meta">
                 {TEMPLATE_LABELS[normalizeTemplateType(section.templateType)]}
                 <span className="admin-section-row__dot">·</span>

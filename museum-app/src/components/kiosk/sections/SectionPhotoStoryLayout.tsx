@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import type { ScreenOrientation, Section } from "@/lib/types";
-import { imageSizeClass, parseContent } from "@/lib/section-content";
+import { imageSizeClass, mediaRefFromUrl, parseContent } from "@/lib/section-content";
 import { SectionHeader } from "./SectionHeader";
+import { MediaTile } from "../media/MediaTile";
+import { MediaPreviewOverlay } from "../media/MediaPreviewOverlay";
 
 interface SectionPhotoStoryLayoutProps {
   section: Section;
@@ -15,6 +17,9 @@ export function SectionPhotoStoryLayout({ section, orientation }: SectionPhotoSt
   const isHorizontal = orientation === "horizontal";
   const content = parseContent(section.contentJson, section.contentHtml, "photo_story");
   const stories = content.stories ?? [];
+  const [previewId, setPreviewId] = useState<string | null>(null);
+
+  const previewStory = stories.find((s) => s.id === previewId);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-transparent">
@@ -29,21 +34,22 @@ export function SectionPhotoStoryLayout({ section, orientation }: SectionPhotoSt
         >
           {stories.map((story, index) => {
             const side = index % 2 === 0 ? "left" : "right";
-            const hasImage = Boolean(story.imageUrl);
+            const hasMedia = Boolean(story.media?.url);
 
             return (
               <article
                 key={story.id}
-                className={`story-card story-card--${side} ${hasImage ? imageSizeClass(story.imageSize, "story-card") : "story-card--text-only"}`}
+                className={`story-card story-card--${side} ${hasMedia ? imageSizeClass(story.imageSize, "story-card") : "story-card--text-only"}`}
               >
-                {hasImage && story.imageUrl ? (
+                {hasMedia ? (
                   <div className={`story-card__visual ${imageSizeClass(story.imageSize, "story-card__visual")}`}>
-                    <Image
-                      src={story.imageUrl}
-                      alt={story.title}
-                      fill
+                    <MediaTile
+                      media={story.media ?? mediaRefFromUrl("")}
+                      title={story.title}
+                      className="story-card__media-tile"
                       sizes={isHorizontal ? "45vw" : "100vw"}
-                      className="story-card__img"
+                      onClick={() => setPreviewId(story.id)}
+                      asButton
                     />
                   </div>
                 ) : null}
@@ -63,6 +69,14 @@ export function SectionPhotoStoryLayout({ section, orientation }: SectionPhotoSt
           })}
         </motion.div>
       </div>
+
+      {previewStory?.media?.url ? (
+        <MediaPreviewOverlay
+          items={[{ media: previewStory.media, title: previewStory.title }]}
+          index={0}
+          onClose={() => setPreviewId(null)}
+        />
+      ) : null}
     </div>
   );
 }

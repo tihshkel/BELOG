@@ -22,7 +22,10 @@ export default function AdminLoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login, password }),
+        body: JSON.stringify({
+          login: login.trim(),
+          password: password.trim(),
+        }),
       });
 
       if (!res.ok) {
@@ -31,7 +34,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      router.push("/admin");
+      router.push("/admin/site");
     } catch {
       setError("Ошибка соединения");
     } finally {
@@ -87,6 +90,12 @@ export default function AdminLoginPage() {
           <button type="submit" disabled={loading} className="admin-btn-primary admin-btn-primary--block admin-btn-primary--large">
             {loading ? "Вход..." : "Войти"}
           </button>
+
+          <p className="admin-login__hint">
+            Логин: <code>belog_admin</code>
+            <br />
+            Пароль: <code>MuzeiBelOG2026</code>
+          </p>
 
           <Link href="/" className="admin-login__back">
             На главную

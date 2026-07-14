@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
     const valid = await verifySession(token);
     if (valid) {
-      return NextResponse.redirect(new URL("/admin", request.url));
+      return NextResponse.redirect(new URL("/admin/site", request.url));
     }
   }
 

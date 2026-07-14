@@ -7,10 +7,13 @@ import TextAlign from "@tiptap/extension-text-align";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { MaterialIcon } from "@/components/ui/MaterialIcon";
+import { PromptDialog } from "./PromptDialog";
 
 interface RichTextEditorProps {
   content: string;
+  fallbackHtml?: string;
   onChange: (json: string, html: string) => void;
   placeholder?: string;
 }
@@ -49,7 +52,9 @@ function ToolbarButton({
   );
 }
 
-export function RichTextEditor({ content, onChange, placeholder }: RichTextEditorProps) {
+export function RichTextEditor({ content, fallbackHtml, onChange, placeholder }: RichTextEditorProps) {
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkDefaultValue, setLinkDefaultValue] = useState("");
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -61,13 +66,13 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
       Placeholder.configure({ placeholder: placeholder ?? "Введите текст..." }),
     ],
     content: (() => {
-      if (!content) return undefined;
+      if (!content) return fallbackHtml || undefined;
       try {
         const parsed = JSON.parse(content);
         if (parsed?.type === "doc") return parsed;
-        return undefined;
+        return fallbackHtml || undefined;
       } catch {
-        return undefined;
+        return fallbackHtml || undefined;
       }
     })(),
     onUpdate: ({ editor: ed }) => {
@@ -76,17 +81,27 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
   });
 
   useEffect(() => {
-    if (!editor || !content) return;
-    try {
-      const parsed = JSON.parse(content);
-      const current = JSON.stringify(editor.getJSON());
-      if (current !== content) {
-        editor.commands.setContent(parsed);
+    if (!editor) return;
+
+    if (content) {
+      try {
+        const parsed = JSON.parse(content);
+        if (parsed?.type === "doc") {
+          const current = JSON.stringify(editor.getJSON());
+          if (current !== content) {
+            editor.commands.setContent(parsed);
+          }
+          return;
+        }
+      } catch {
+        // fall through to HTML fallback
       }
-    } catch {
-      // ignore invalid json
     }
-  }, [content, editor]);
+
+    if (fallbackHtml && editor.getHTML() !== fallbackHtml) {
+      editor.commands.setContent(fallbackHtml);
+    }
+  }, [content, fallbackHtml, editor]);
 
   const addImage = async () => {
     const input = document.createElement("input");
@@ -192,20 +207,35 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
         </ToolbarButton>
         <span className="mx-1 w-px bg-gray-200" />
         <ToolbarButton title="Вставить изображение" onClick={addImage}>
-          🖼
+          <MaterialIcon name="image" size={18} />
         </ToolbarButton>
         <ToolbarButton
           title="Ссылка"
           active={editor.isActive("link")}
           onClick={() => {
-            const url = window.prompt("URL");
-            if (url) editor.chain().focus().setLink({ href: url }).run();
+            setLinkDefaultValue(editor.getAttributes("link").href ?? "");
+            setLinkDialogOpen(true);
           }}
         >
-          🔗
+          <MaterialIcon name="link" size={18} />
         </ToolbarButton>
       </div>
       <EditorContent editor={editor} className="tiptap-editor" />
+
+      <PromptDialog
+        open={linkDialogOpen}
+        title="Добавить ссылку"
+        message="Вставьте полный адрес страницы — он откроется при нажатии в тексте."
+        label="Адрес (URL)"
+        placeholder="https://example.com"
+        defaultValue={linkDefaultValue}
+        confirmLabel={editor.isActive("link") ? "Сохранить" : "Добавить"}
+        onConfirm={(url) => {
+          editor.chain().focus().setLink({ href: url }).run();
+          setLinkDialogOpen(false);
+        }}
+        onCancel={() => setLinkDialogOpen(false)}
+      />
     </div>
   );
 }

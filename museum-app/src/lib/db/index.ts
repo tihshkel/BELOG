@@ -44,6 +44,7 @@ export function initDatabase() {
       template_type TEXT NOT NULL DEFAULT 'article',
       content_json TEXT,
       content_html TEXT,
+      slot_index INTEGER NOT NULL DEFAULT 0,
       sort_order INTEGER NOT NULL DEFAULT 0,
       is_published INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
@@ -57,6 +58,16 @@ export function initDatabase() {
   `);
 
   migrateSectionsV2();
+  migrateSlotIndex();
+}
+
+function migrateSlotIndex() {
+  const columns = sqlite.prepare("PRAGMA table_info(sections)").all() as { name: string }[];
+  const hasSlotIndex = columns.some((c) => c.name === "slot_index");
+  if (!hasSlotIndex) {
+    sqlite.exec(`ALTER TABLE sections ADD COLUMN slot_index INTEGER NOT NULL DEFAULT 0`);
+    sqlite.exec(`UPDATE sections SET slot_index = sort_order WHERE slot_index = 0 OR slot_index IS NULL`);
+  }
 }
 
 function migrateSectionsV2() {

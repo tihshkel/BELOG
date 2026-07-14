@@ -3,7 +3,9 @@
 import { useState } from "react";
 import type { ScreenOrientation } from "@/lib/types";
 import { useAdminToast } from "./AdminToast";
-import { ImageUploadZone } from "./ImageUploadZone";
+import { mediaRefToStorageValue } from "@/lib/section-content";
+import { MediaUploadZone } from "./MediaUploadZone";
+import { RichTextEditor } from "./RichTextEditor";
 
 interface HomeContentItem {
   id: string;
@@ -28,11 +30,12 @@ interface HomeEditorProps {
 
 export function HomeEditor({ orientation, initialData }: HomeEditorProps) {
   const { showToast } = useAdminToast();
-  const [items, setItems] = useState(initialData);
+  const items = initialData.filter((item) => item.hotspotType === "logo");
+  const [localItems, setLocalItems] = useState(items);
   const [saving, setSaving] = useState<string | null>(null);
 
   const updateItem = (hotspotType: string, field: string, value: string) => {
-    setItems((prev) =>
+    setLocalItems((prev) =>
       prev.map((item) =>
         item.hotspotType === hotspotType ? { ...item, [field]: value } : item
       )
@@ -42,7 +45,6 @@ export function HomeEditor({ orientation, initialData }: HomeEditorProps) {
   const saveItem = async (item: HomeContentItem) => {
     setSaving(item.hotspotType);
     try {
-      const html = item.contentHtml ?? "";
       const res = await fetch("/api/home-content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -51,7 +53,7 @@ export function HomeEditor({ orientation, initialData }: HomeEditorProps) {
           hotspotType: item.hotspotType,
           title: item.title,
           contentJson: item.contentJson,
-          contentHtml: html,
+          contentHtml: item.contentHtml,
           mediaUrl: item.mediaUrl,
         }),
       });
@@ -69,11 +71,12 @@ export function HomeEditor({ orientation, initialData }: HomeEditorProps) {
       <header className="admin-page-head">
         <h1 className="admin-page-head__title">Главная страница</h1>
         <p className="admin-page-head__sub">
-          Экран: {orientation === "horizontal" ? "горизонтальный" : "вертикальный"}
+          Клик по логотипу на киоске открывает эту историю · экран:{" "}
+          {orientation === "horizontal" ? "горизонтальный" : "вертикальный"}
         </p>
       </header>
 
-      {items.map((item) => (
+      {localItems.map((item) => (
         <div key={item.hotspotType} className="admin-card admin-editor__card">
           <h3 className="admin-editor__block-title">
             {hotspotLabels[item.hotspotType] ?? item.hotspotType}
@@ -89,32 +92,31 @@ export function HomeEditor({ orientation, initialData }: HomeEditorProps) {
             />
           </div>
 
-          <ImageUploadZone
-            label="Изображение"
+          <MediaUploadZone
+            label="Главное медиа (слева в окне)"
             value={item.mediaUrl}
-            onChange={(url) => updateItem(item.hotspotType, "mediaUrl", url)}
+            onChange={(media) => updateItem(item.hotspotType, "mediaUrl", mediaRefToStorageValue(media))}
           />
 
           <div className="admin-field">
-            <label className="admin-label">Текст</label>
-            <textarea
-              className="admin-textarea"
-              rows={12}
-              value={stripHtml(item.contentHtml ?? "")}
-              onChange={(e) => {
-                const html = e.target.value
-                  .split("\n\n")
-                  .map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`)
-                  .join("");
-                setItems((prev) =>
+            <label className="admin-label">Текст и фотографии</label>
+            <p className="admin-page-head__sub" style={{ marginBottom: "0.75rem" }}>
+              Форматируйте текст, вставляйте изображения и ссылки на источники. Изменения
+              сразу отобразятся на киоске после сохранения.
+            </p>
+            <RichTextEditor
+              content={item.contentJson ?? ""}
+              fallbackHtml={item.contentHtml ?? ""}
+              placeholder="История организации, этапы развития, источники..."
+              onChange={(json, html) => {
+                setLocalItems((prev) =>
                   prev.map((i) =>
                     i.hotspotType === item.hotspotType
-                      ? { ...i, contentHtml: html }
+                      ? { ...i, contentJson: json, contentHtml: html }
                       : i
                   )
                 );
               }}
-              placeholder="Введите текст. Пустая строка между абзацами — новый абзац."
             />
           </div>
 
@@ -130,13 +132,4 @@ export function HomeEditor({ orientation, initialData }: HomeEditorProps) {
       ))}
     </div>
   );
-}
-
-function stripHtml(html: string) {
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>\s*<p>/gi, "\n\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .trim();
 }

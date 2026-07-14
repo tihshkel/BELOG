@@ -3,9 +3,16 @@
 import type { SectionTemplate } from "@/lib/types";
 import { getTemplateDescription, TEMPLATE_LABELS } from "@/lib/section-content";
 
-const templates: SectionTemplate[] = ["article", "photo_story", "gallery", "timeline"];
+const templates: SectionTemplate[] = [
+  "article",
+  "photo_story",
+  "gallery",
+  "timeline",
+  "highlights",
+];
 
 interface TemplatePickerProps {
+  selected?: SectionTemplate;
   onSelect: (template: SectionTemplate) => void;
 }
 
@@ -42,6 +49,16 @@ function TemplateWireframe({ template }: { template: SectionTemplate }) {
       </div>
     );
   }
+  if (template === "highlights") {
+    return (
+      <div className="admin-template-wire admin-template-wire--highlights" aria-hidden>
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
+    );
+  }
   return (
     <div className="admin-template-wire admin-template-wire--timeline" aria-hidden>
       <span className="admin-template-wire__tl-year" />
@@ -53,11 +70,23 @@ function TemplateWireframe({ template }: { template: SectionTemplate }) {
   );
 }
 
-export function TemplatePicker({ onSelect }: TemplatePickerProps) {
+export function TemplatePicker({ selected, onSelect }: TemplatePickerProps) {
   return (
-    <div className="admin-template-grid">
+    <div className="admin-template-picker">
       {templates.map((tpl) => (
-        <button key={tpl} type="button" className="touch-tile admin-template-card" onClick={() => onSelect(tpl)}>
+        <button
+          key={tpl}
+          type="button"
+          className={[
+            "touch-tile",
+            "admin-template-card",
+            selected === tpl ? "admin-template-card--selected" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          onClick={() => onSelect(tpl)}
+          aria-pressed={selected === tpl}
+        >
           <TemplateWireframe template={tpl} />
           <h3 className="admin-template-card__title">{TEMPLATE_LABELS[tpl]}</h3>
           <p className="admin-template-card__desc">{getTemplateDescription(tpl)}</p>

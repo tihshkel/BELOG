@@ -1,7 +1,7 @@
 "use client";
 
 import type { SectionContentV2 } from "@/lib/section-content";
-import { ImageUploadZone } from "../ImageUploadZone";
+import { MediaUploadZone } from "../MediaUploadZone";
 import { ImageSizePicker } from "../ImageSizePicker";
 
 interface ArticleEditorProps {
@@ -14,14 +14,14 @@ export function ArticleEditor({ content, onChange }: ArticleEditorProps) {
 
   return (
     <div className="admin-template-form">
-      <ImageUploadZone
-        label="Главное фото"
-        value={content.heroImage ?? ""}
-        onChange={(url) => patch({ heroImage: url })}
-        hint="Будет крупно на экране рядом с текстом"
+      <MediaUploadZone
+        label="Главное медиа"
+        value={content.heroMedia ?? content.heroImage ?? ""}
+        onChange={(heroMedia) => patch({ heroMedia })}
+        hint="Фото, видео, PDF, аудио или презентация — крупно на экране"
       />
 
-      {content.heroImage ? (
+      {content.heroMedia?.url || content.heroImage ? (
         <ImageSizePicker
           value={content.heroSize ?? "large"}
           onChange={(heroSize) => patch({ heroSize })}

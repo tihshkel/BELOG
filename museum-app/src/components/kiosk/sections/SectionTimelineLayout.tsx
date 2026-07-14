@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import type { ScreenOrientation, Section } from "@/lib/types";
 import { parseContent } from "@/lib/section-content";
 import { SectionHeader } from "./SectionHeader";
+import { MediaTile } from "../media/MediaTile";
+import { MediaPreviewOverlay } from "../media/MediaPreviewOverlay";
 
 interface SectionTimelineLayoutProps {
   section: Section;
@@ -14,6 +16,8 @@ interface SectionTimelineLayoutProps {
 export function SectionTimelineLayout({ section, orientation }: SectionTimelineLayoutProps) {
   const content = parseContent(section.contentJson, section.contentHtml, "timeline");
   const events = content.events ?? [];
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const previewEvent = events.find((e) => e.id === previewId);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-transparent">
@@ -35,9 +39,16 @@ export function SectionTimelineLayout({ section, orientation }: SectionTimelineL
               </div>
 
               <div className="timeline-event__card">
-                {event.imageUrl ? (
+                {event.media?.url ? (
                   <div className="timeline-event__thumb">
-                    <Image src={event.imageUrl} alt="" fill sizes="120px" className="object-cover" />
+                    <MediaTile
+                      media={event.media}
+                      title={event.title}
+                      className="timeline-event__media-tile"
+                      sizes="120px"
+                      onClick={() => setPreviewId(event.id)}
+                      asButton
+                    />
                   </div>
                 ) : null}
                 <div className="timeline-event__body">
@@ -55,6 +66,14 @@ export function SectionTimelineLayout({ section, orientation }: SectionTimelineL
           ))}
         </motion.div>
       </div>
+
+      {previewEvent?.media?.url ? (
+        <MediaPreviewOverlay
+          items={[{ media: previewEvent.media, title: previewEvent.title }]}
+          index={0}
+          onClose={() => setPreviewId(null)}
+        />
+      ) : null}
     </div>
   );
 }
